@@ -212,12 +212,69 @@ body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#e8f4fd
 @media(max-width:640px){
   .app-body{position:relative;}
   .sidebar{width:100%;position:absolute;top:0;bottom:0;left:0;z-index:5;}
-  .btn-back{display:none!important;} /* 모바일 전용 상단바로 대체 */
+  .btn-back{display:none!important;}
   .header-view-name{display:none;}
+
+  /* 앱 헤더 - 상단 안전영역 확보 */
+  .app-header{
+    padding-top:max(16px, env(safe-area-inset-top, 16px));
+    padding-bottom:14px;
+  }
+
+  /* 사이드바 상단 여백 추가 - 터치 편의 */
+  .sidebar-top{
+    padding:16px 14px 10px;
+  }
+
+  /* 새 메모 버튼 크게 */
+  .btn-new{
+    padding:14px;
+    font-size:15px;
+    border-radius:12px;
+    margin-bottom:4px;
+  }
+
+  /* 검색박스 여백 */
+  .search-box{
+    margin-top:10px;
+    padding:10px 13px;
+    font-size:14px;
+    border-radius:10px;
+  }
+
+  /* 메모 목록 아이템 - 터치 영역 크게 */
+  .memo-item{
+    padding:14px 14px;
+    margin-bottom:6px;
+    border-radius:12px;
+  }
+  .item-title{font-size:15px;font-weight:600;}
+  .item-preview{font-size:13px;margin-top:3px;}
+  .item-date{font-size:11px;margin-top:4px;}
+
+  /* 드로어 폴더 아이템 - 터치 영역 크게 */
+  .folder-item{padding:13px 12px;margin-bottom:4px;}
+  .folder-name-text{font-size:14px;}
+  .folder-count-badge{font-size:11px;padding:2px 8px;}
+
+  /* 글씨 크기 바 */
+  .font-size-bar{
+    padding:12px 16px 10px;
+  }
+
+  /* 새 폴더 추가 버튼 - 위로 이동, 하단 여백 줄임 */
+  .drawer-footer{
+    padding:12px 16px;
+    padding-bottom:max(16px, env(safe-area-inset-bottom, 16px));
+  }
+  .btn-add-folder{
+    padding:15px;
+    font-size:15px;
+    border-radius:14px;
+  }
 
   /* 편집 중일 때 앱 헤더 완전히 숨김 */
   #app-screen.editing .app-header{display:none!important;}
-  /* 편집 중일 때 app-body도 전체 높이 */
   #app-screen.editing .app-body{height:100vh;}
 
   /* 에디터: 화면 전체 차지 (헤더 포함 0,0~100%) */
@@ -1097,6 +1154,14 @@ function renderList(filter=''){
       ${orderBtns}
     </div>`;
   }).join('');
+  // 렌더링 후 저장된 글씨 크기 즉시 적용
+  const savedSz=localStorage.getItem('fontSize');
+  if(savedSz){
+    const sz=parseInt(savedSz);
+    document.querySelectorAll('.item-title').forEach(el=>el.style.fontSize=sz+'px');
+    document.querySelectorAll('.item-preview').forEach(el=>el.style.fontSize=(sz-2)+'px');
+    document.querySelectorAll('.item-date').forEach(el=>el.style.fontSize=(sz-3)+'px');
+  }
 }
 
 // ── 선택 모드 ──
@@ -1193,18 +1258,38 @@ window.moveToTop=async function(id,e){
 
 // ── 글씨 크기 조절 ──
 window.changeFontSize=function(size){
-  document.getElementById('font-size-value').textContent=size;
-  // 메모 목록 글씨 크기
-  document.querySelectorAll('.item-title').forEach(el=>el.style.fontSize=size+'px');
-  document.querySelectorAll('.item-preview').forEach(el=>el.style.fontSize=(parseInt(size)-2)+'px');
-  // 에디터 본문 글씨 크기
+  const sz=parseInt(size);
+  document.getElementById('font-size-value').textContent=sz;
+
+  // CSS 변수로 전체 적용
+  document.documentElement.style.setProperty('--app-font-size', sz+'px');
+  document.documentElement.style.setProperty('--app-font-sm', (sz-2)+'px');
+  document.documentElement.style.setProperty('--app-font-xs', (sz-3)+'px');
+  document.documentElement.style.setProperty('--app-font-lg', (sz+2)+'px');
+  document.documentElement.style.setProperty('--app-font-xl', (sz+6)+'px');
+
+  // 메모 목록
+  document.querySelectorAll('.item-title').forEach(el=>el.style.fontSize=sz+'px');
+  document.querySelectorAll('.item-preview').forEach(el=>el.style.fontSize=(sz-2)+'px');
+  document.querySelectorAll('.item-date').forEach(el=>el.style.fontSize=(sz-3)+'px');
+
+  // 폴더 목록
+  document.querySelectorAll('.folder-name-text').forEach(el=>el.style.fontSize=sz+'px');
+  document.querySelectorAll('.folder-count-badge').forEach(el=>el.style.fontSize=(sz-2)+'px');
+
+  // 에디터 본문/제목
   const ce=document.getElementById('memo-content');
-  if(ce)ce.style.fontSize=size+'px';
-  // 제목 글씨 크기
   const ti=document.getElementById('memo-title');
-  if(ti)ti.style.fontSize=(parseInt(size)+6)+'px';
+  if(ce)ce.style.fontSize=sz+'px';
+  if(ti)ti.style.fontSize=(sz+6)+'px';
+
+  // 버튼/메뉴 글씨
+  document.querySelectorAll('.btn-icon').forEach(el=>el.style.fontSize=(sz-2)+'px');
+  document.querySelectorAll('.btn-new').forEach(el=>el.style.fontSize=sz+'px');
+  document.querySelectorAll('.sidebar-view-label').forEach(el=>el.style.fontSize=sz+'px');
+
   // 저장
-  localStorage.setItem('fontSize',size);
+  localStorage.setItem('fontSize', sz);
 };
 
 // 앱 시작 시 저장된 글씨 크기 복원
@@ -1212,7 +1297,8 @@ function restoreFontSize(){
   const saved=localStorage.getItem('fontSize');
   if(saved){
     const slider=document.getElementById('font-size-slider');
-    if(slider){slider.value=saved;changeFontSize(saved);}
+    if(slider){slider.value=saved;}
+    changeFontSize(saved);
   }
 }
 
@@ -1331,10 +1417,14 @@ function showEditorFields(m){
   // 저장된 글씨 크기 적용
   const saved=localStorage.getItem('fontSize');
   if(saved){
+    const sz=parseInt(saved);
     const ce=document.getElementById('memo-content');
     const ti=document.getElementById('memo-title');
-    if(ce)ce.style.fontSize=saved+'px';
-    if(ti)ti.style.fontSize=(parseInt(saved)+6)+'px';
+    if(ce)ce.style.fontSize=sz+'px';
+    if(ti)ti.style.fontSize=(sz+6)+'px';
+    // 목록 글씨도 갱신
+    document.querySelectorAll('.item-title').forEach(el=>el.style.fontSize=sz+'px');
+    document.querySelectorAll('.item-preview').forEach(el=>el.style.fontSize=(sz-2)+'px');
   }
   document.getElementById('memo-content').addEventListener('click',e=>{
     document.querySelectorAll('.content-editor img').forEach(i=>i.classList.remove('selected'));
