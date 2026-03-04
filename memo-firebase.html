@@ -1143,7 +1143,11 @@ function renderList(filter=''){
       ${idx<items.length-1?`<button class="btn-order" onclick="moveOrder('${m.id}',1,event)">▼</button>`:''}
     </div>`:'';
     const clickFn=inSelect?`toggleSelectMemo('${m.id}',event)`:`openMemo('${m.id}')`;
-    return `<div class="memo-item${m.id===currentMemoId&&!inSelect?' active':''}${isSelected?' selected':''}" onclick="${clickFn}">
+    return `<div class="memo-item${m.id===currentMemoId&&!inSelect?' active':''}${isSelected?' selected':''}" 
+      onclick="${clickFn}"
+      ontouchstart="startLongPress('${m.id}',event)"
+      ontouchend="cancelLongPress(event)"
+      ontouchmove="cancelLongPress(event)">
       <div class="memo-item-checkbox">${isSelected?'✓':''}</div>
       <div class="memo-item-top">
         <div class="memo-folder-dot" style="background:${color}"></div>
@@ -1164,6 +1168,27 @@ function renderList(filter=''){
     document.querySelectorAll('.item-date').forEach(el=>el.style.fontSize=(sz-3)+'px');
   }
 }
+
+// ── 롱프레스 선택 모드 ──
+let longPressTimer=null;
+let longPressId=null;
+window.startLongPress=function(id,e){
+  const list=document.getElementById('memo-list');
+  if(list.classList.contains('select-mode'))return; // 이미 선택 모드면 스킵
+  longPressId=id;
+  longPressTimer=setTimeout(()=>{
+    // 진동 피드백 (지원하는 기기만)
+    if(navigator.vibrate)navigator.vibrate(50);
+    enterSelectMode();
+    // 롱프레스한 메모 바로 선택
+    selectedMemos.add(longPressId);
+    updateSelectInfo();
+    renderList(document.getElementById('search-input').value);
+  },500);
+};
+window.cancelLongPress=function(e){
+  if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
+};
 
 // ── 선택 모드 ──
 window.enterSelectMode=function(){
@@ -1215,23 +1240,30 @@ function updateSelectInfo(){
 }
 window.trashSelectedMemos=async function(){
   if(selectedMemos.size===0)return;
+  const ids=[...selectedMemos]; // confirm 전에 미리 복사
   const isTrash=currentViewId==='trash';
   const label=isTrash?'영구 삭제':'휴지통으로 이동';
-  if(!confirm(`선택한 ${selectedMemos.size}개 메모를 ${label}할까요?`))return;
-  const batch=writeBatch(db);
-  if(isTrash){
-    selectedMemos.forEach(id=>batch.delete(doc(db,'users',currentUser.uid,'memos',id)));
-  }else{
-    selectedMemos.forEach(id=>batch.update(doc(db,'users',currentUser.uid,'memos',id),{trashed:true,trashedAt:serverTimestamp()}));
+  if(!confirm(`선택한 ${ids.length}개 메모를 ${label}할까요?`))return;
+  try{
+    const batch=writeBatch(db);
+    if(isTrash){
+      ids.forEach(id=>batch.delete(doc(db,'users',currentUser.uid,'memos',id)));
+    }else{
+      ids.forEach(id=>batch.update(doc(db,'users',currentUser.uid,'memos',id),{trashed:true,trashedAt:serverTimestamp()}));
+    }
+    await batch.commit();
+    // 로컬 IDB에서도 삭제
+    ids.forEach(id=>idbDeleteMemo(id));
+    if(currentMemoId&&ids.includes(currentMemoId)){
+      currentMemoId=null;
+      document.getElementById('editor-content').innerHTML='<div class="editor-empty"><div class="big-icon">📄</div><p>메모를 선택하거나 새 메모를 작성하세요</p></div>';
+      document.getElementById('app-body').classList.remove('show-editor');
+      document.getElementById('app-screen').classList.remove('editing');
+    }
+    exitSelectMode();
+  }catch(e){
+    alert('삭제 중 오류가 발생했습니다: '+e.message);
   }
-  await batch.commit();
-  if(currentMemoId&&selectedMemos.has(currentMemoId)){
-    currentMemoId=null;
-    document.getElementById('editor-content').innerHTML='<div class="editor-empty"><div class="big-icon">📄</div><p>메모를 선택하거나 새 메모를 작성하세요</p></div>';
-    document.getElementById('app-body').classList.remove('show-editor');
-    document.getElementById('app-screen').classList.remove('editing');
-  }
-  exitSelectMode();
 };
 
 // ── 순서 변경 ──
