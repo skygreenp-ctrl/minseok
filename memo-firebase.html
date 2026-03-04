@@ -143,11 +143,13 @@ body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#e8f4fd
 .badge{font-size:11px;}
 .item-preview{font-size:11px;color:#a0aec0;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .item-date{font-size:10px;color:#cbd5e0;margin-top:2px;}
-.item-order-btns{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:none;flex-direction:column;gap:2px;}
-.memo-item:hover .item-order-btns{display:flex;}
-.btn-order{width:18px;height:15px;border:none;background:#e2e8f0;border-radius:3px;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;color:#718096;}
+/* 순서 버튼 - 모바일에서 크게 항상 표시 */
+.item-order-btns{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:3px;}
+.btn-order{width:28px;height:26px;border:none;background:#e2e8f0;border-radius:5px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;color:#718096;}
 .btn-order:hover{background:#4c6ef5;color:white;}
-.btn-order-top{background:#ebf4ff;color:#4c6ef5;font-size:11px;font-weight:700;}
+.btn-order-top{background:#ebf4ff;color:#4c6ef5;font-size:13px;font-weight:700;}
+/* 메모 아이템 - 우측 버튼 공간 확보 */
+.memo-item{padding:10px 80px 10px 12px;border-radius:10px;cursor:pointer;margin-bottom:3px;border:2px solid transparent;position:relative;transition:all 0.12s;-webkit-user-select:none;user-select:none;}
 .empty-list{text-align:center;padding:36px 20px;color:#a0aec0;font-size:13px;line-height:1.7;}
 
 /* ── 에디터 ── */
@@ -703,6 +705,18 @@ body.dark .font-size-slider{background:#3a4556;}
   </div>
 </div>
 
+<!-- 선택 삭제 확인 모달 -->
+<div class="modal-bg" id="select-delete-modal">
+  <div class="modal">
+    <h3 id="select-delete-title">🗑 선택 삭제</h3>
+    <p class="modal-desc" id="select-delete-desc">선택한 메모를 휴지통으로 이동합니다.</p>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closeSelectDeleteModal()">취소</button>
+      <button class="btn-modal-ok btn-modal-danger" onclick="confirmSelectDelete()">삭제</button>
+    </div>
+  </div>
+</div>
+
 <input type="file" id="img-file-input" accept="image/*" onchange="onImageFileSelected(event)">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1145,9 +1159,7 @@ function renderList(filter=''){
     const clickFn=inSelect?`toggleSelectMemo('${m.id}',event)`:`openMemo('${m.id}')`;
     return `<div class="memo-item${m.id===currentMemoId&&!inSelect?' active':''}${isSelected?' selected':''}" 
       onclick="${clickFn}"
-      ontouchstart="startLongPress('${m.id}',event)"
-      ontouchend="cancelLongPress(event)"
-      ontouchmove="cancelLongPress(event)">
+      oncontextmenu="onMemoContextMenu('${m.id}',event)">
       <div class="memo-item-checkbox">${isSelected?'✓':''}</div>
       <div class="memo-item-top">
         <div class="memo-folder-dot" style="background:${color}"></div>
@@ -1169,25 +1181,57 @@ function renderList(filter=''){
   }
 }
 
-// ── 롱프레스 선택 모드 ──
+// ── 롱프레스(우클릭/꾹누르기) → 선택 모드 진입 ──
 let longPressTimer=null;
-let longPressId=null;
-window.startLongPress=function(id,e){
+window.onMemoContextMenu=function(id,e){
+  e.preventDefault();
+  e.stopPropagation();
   const list=document.getElementById('memo-list');
-  if(list.classList.contains('select-mode'))return; // 이미 선택 모드면 스킵
-  longPressId=id;
-  longPressTimer=setTimeout(()=>{
-    // 진동 피드백 (지원하는 기기만)
-    if(navigator.vibrate)navigator.vibrate(50);
-    enterSelectMode();
-    // 롱프레스한 메모 바로 선택
-    selectedMemos.add(longPressId);
-    updateSelectInfo();
-    renderList(document.getElementById('search-input').value);
-  },500);
+  if(list.classList.contains('select-mode')){
+    // 이미 선택 모드면 토글
+    toggleSelectMemo(id,e);
+    return;
+  }
+  if(navigator.vibrate)navigator.vibrate(60);
+  enterSelectMode();
+  selectedMemos.add(id);
+  updateSelectInfo();
+  renderList(document.getElementById('search-input').value);
+  return false;
 };
-window.cancelLongPress=function(e){
-  if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
+window.cancelLongPress=function(){if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}};
+
+// ── 선택 삭제 모달 ──
+let pendingDeleteIds=[];
+window.closeSelectDeleteModal=function(){
+  document.getElementById('select-delete-modal').classList.remove('show');
+  pendingDeleteIds=[];
+};
+window.confirmSelectDelete=async function(){
+  document.getElementById('select-delete-modal').classList.remove('show');
+  const ids=pendingDeleteIds;
+  pendingDeleteIds=[];
+  if(!ids.length)return;
+  const isTrash=currentViewId==='trash';
+  try{
+    const batch=writeBatch(db);
+    if(isTrash){
+      ids.forEach(id=>batch.delete(doc(db,'users',currentUser.uid,'memos',id)));
+    }else{
+      ids.forEach(id=>batch.update(doc(db,'users',currentUser.uid,'memos',id),{trashed:true,trashedAt:serverTimestamp()}));
+    }
+    await batch.commit();
+    ids.forEach(id=>idbDeleteMemo(id));
+    if(currentMemoId&&ids.includes(currentMemoId)){
+      currentMemoId=null;
+      document.getElementById('editor-content').innerHTML='<div class="editor-empty"><div class="big-icon">📄</div><p>메모를 선택하거나 새 메모를 작성하세요</p></div>';
+      document.getElementById('app-body').classList.remove('show-editor');
+      document.getElementById('app-screen').classList.remove('editing');
+    }
+    exitSelectMode();
+  }catch(err){
+    alert('삭제 오류: '+err.message);
+  }
 };
 
 // ── 선택 모드 ──
@@ -1238,32 +1282,20 @@ function updateSelectInfo(){
     allBtn.textContent=selectedMemos.size===total&&total>0?'선택 해제':'전체선택';
   }
 }
-window.trashSelectedMemos=async function(){
+window.trashSelectedMemos=function(){
   if(selectedMemos.size===0)return;
-  const ids=[...selectedMemos]; // confirm 전에 미리 복사
+  pendingDeleteIds=[...selectedMemos];
   const isTrash=currentViewId==='trash';
-  const label=isTrash?'영구 삭제':'휴지통으로 이동';
-  if(!confirm(`선택한 ${ids.length}개 메모를 ${label}할까요?`))return;
-  try{
-    const batch=writeBatch(db);
-    if(isTrash){
-      ids.forEach(id=>batch.delete(doc(db,'users',currentUser.uid,'memos',id)));
-    }else{
-      ids.forEach(id=>batch.update(doc(db,'users',currentUser.uid,'memos',id),{trashed:true,trashedAt:serverTimestamp()}));
-    }
-    await batch.commit();
-    // 로컬 IDB에서도 삭제
-    ids.forEach(id=>idbDeleteMemo(id));
-    if(currentMemoId&&ids.includes(currentMemoId)){
-      currentMemoId=null;
-      document.getElementById('editor-content').innerHTML='<div class="editor-empty"><div class="big-icon">📄</div><p>메모를 선택하거나 새 메모를 작성하세요</p></div>';
-      document.getElementById('app-body').classList.remove('show-editor');
-      document.getElementById('app-screen').classList.remove('editing');
-    }
-    exitSelectMode();
-  }catch(e){
-    alert('삭제 중 오류가 발생했습니다: '+e.message);
+  const title=document.getElementById('select-delete-title');
+  const desc=document.getElementById('select-delete-desc');
+  if(isTrash){
+    title.textContent='🗑 영구 삭제';
+    desc.textContent=`선택한 ${pendingDeleteIds.length}개 메모를 영구 삭제합니다.\n되돌릴 수 없습니다.`;
+  }else{
+    title.textContent='🗑 휴지통으로 이동';
+    desc.textContent=`선택한 ${pendingDeleteIds.length}개 메모를 휴지통으로 이동합니다.`;
   }
+  document.getElementById('select-delete-modal').classList.add('show');
 };
 
 // ── 순서 변경 ──
