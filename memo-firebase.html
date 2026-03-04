@@ -9,7 +9,7 @@
 <title>메모장</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;min-height:100vh;transition:background 0.2s;}
+body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#e8f4fd 0%,#f0f7ff 40%,#e8f5e9 100%);min-height:100vh;transition:background 0.2s;}
 
 /* ── 로딩 ── */
 .loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:12px;font-size:14px;color:#718096;}
@@ -79,9 +79,15 @@ body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;min-height:100vh;trans
 .btn-fo:hover{background:#4c6ef5;color:white;}
 .folder-order-btns{display:none;flex-direction:column;gap:2px;flex-shrink:0;margin-right:2px;}
 .folder-item:hover .folder-order-btns{display:flex;}
-.drawer-footer{padding:10px 16px;border-top:1px solid #e2e8f0;}
-.btn-add-folder{width:100%;padding:9px;background:#f0f4f8;border:2px dashed #cbd5e0;border-radius:10px;color:#718096;font-size:13px;cursor:pointer;}
-.btn-add-folder:hover{background:#ebf4ff;border-color:#4c6ef5;color:#4c6ef5;}
+.drawer-footer{padding:12px 16px 24px;border-top:1px solid #e2e8f0;background:white;}
+.btn-add-folder{width:100%;padding:13px;background:#ebf4ff;border:2px dashed #4c6ef5;border-radius:12px;color:#4c6ef5;font-size:15px;font-weight:600;cursor:pointer;}
+.btn-add-folder:hover{background:#4c6ef5;color:white;}
+/* 글씨 크기 조절 */
+.font-size-bar{display:flex;align-items:center;gap:8px;padding:10px 16px 6px;border-top:1px solid #e2e8f0;background:white;}
+.font-size-label{font-size:11px;color:#718096;white-space:nowrap;}
+.font-size-slider{flex:1;-webkit-appearance:none;height:4px;border-radius:4px;background:#e2e8f0;outline:none;}
+.font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#4c6ef5;cursor:pointer;}
+.font-size-value{font-size:11px;color:#4c6ef5;font-weight:700;width:28px;text-align:right;}
 
 /* ── 사이드바 ── */
 .sidebar{width:272px;background:white;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;flex-shrink:0;}
@@ -141,6 +147,7 @@ body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;min-height:100vh;trans
 .memo-item:hover .item-order-btns{display:flex;}
 .btn-order{width:18px;height:15px;border:none;background:#e2e8f0;border-radius:3px;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;color:#718096;}
 .btn-order:hover{background:#4c6ef5;color:white;}
+.btn-order-top{background:#ebf4ff;color:#4c6ef5;font-size:11px;font-weight:700;}
 .empty-list{text-align:center;padding:36px 20px;color:#a0aec0;font-size:13px;line-height:1.7;}
 
 /* ── 에디터 ── */
@@ -386,11 +393,21 @@ body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;min-height:100vh;trans
 .btn-restore{padding:4px 10px;background:#fed7d7;border:none;border-radius:6px;font-size:11px;color:#e53e3e;cursor:pointer;font-weight:600;}
 .btn-restore:hover{background:#e53e3e;color:white;}
 
+/* 오프라인 배너 */
+.offline-banner{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:500;
+  background:#e53e3e;color:white;text-align:center;
+  padding:8px 16px;font-size:13px;font-weight:600;
+  box-shadow:0 2px 8px rgba(0,0,0,0.2);
+}
+.offline-banner.show{display:block;}
+.offline-banner.online{background:#38a169;}
+
 #img-file-input{display:none;}
 .btn-back{display:none;}
 
 /* ── 다크모드 ── */
-body.dark{background:#1a202c;}
+body.dark{background:#1e2535;}
 body.dark .app-header{background:#2d3748;}
 body.dark .sidebar,.body.dark .editor-panel{background:#252d3d;}
 body.dark .sidebar{background:#252d3d;border-color:#3a4556;}
@@ -401,11 +418,12 @@ body.dark .search-box{background:#2d3748;border-color:#3a4556;color:#e2e8f0;}
 body.dark .memo-item:hover{background:#2d3748;}
 body.dark .memo-item.active{background:#2b4080;}
 body.dark .item-title{color:#e2e8f0;}
-body.dark .editor{background:#1e2535;}
-body.dark .editor-toolbar{background:#252d3d;border-color:#3a4556;}
-body.dark .editor-meta-bar{background:#1e2535;border-color:#252d3d;}
-body.dark .title-input,.content-editor{background:#1e2535;color:#e2e8f0;}
-body.dark .content-editor{background:#1e2535;color:#e2e8f0;}
+body.dark .editor{background:#252d3d;}
+body.dark .editor-toolbar{background:#2d3748;border-color:#3a4556;}
+body.dark .editor-meta-bar{background:#252d3d;border-color:#3a4556;}
+body.dark .title-input{background:#252d3d;color:#e2e8f0;}
+body.dark .content-editor{background:#252d3d;color:#e2e8f0;}
+body.dark #editor-content{background:#252d3d;}
 body.dark .btn-icon{background:#2d3748;border-color:#3a4556;color:#e2e8f0;}
 body.dark .btn-icon:hover{background:#3a4556;}
 body.dark .move-folder-popup{background:#252d3d;border-color:#3a4556;}
@@ -430,12 +448,26 @@ body.dark .form-group label{color:#a0aec0;}
 body.dark .form-group input{background:#1e2535;border-color:#3a4556;color:#e2e8f0;}
 body.dark .share-url-box{background:#2d3748;border-color:#3a4556;color:#e2e8f0;}
 body.dark .btn-share-item{background:#2d3748;border-color:#3a4556;color:#e2e8f0;}
+body.dark .font-size-bar{background:#2d3748;border-color:#3a4556;}
+body.dark .font-size-label{color:#a0aec0;}
+body.dark .font-size-slider{background:#3a4556;}
+/* 다크모드 모바일 노트 */
+@media(max-width:640px){
+  body.dark .editor{background:#252d3d!important;}
+  body.dark .editor-toolbar{background:#2d3748!important;border-color:#3a4556!important;}
+  body.dark .editor-toolbar .btn-icon{background:rgba(255,255,255,0.08)!important;border-color:#3a4556!important;color:#e2e8f0!important;}
+  body.dark .editor-meta-bar{background:#2d3748!important;border-color:#3a4556!important;color:#a0aec0!important;}
+  body.dark .title-input{background:#252d3d!important;color:#e2e8f0!important;border-color:#3a4556!important;}
+  body.dark .content-editor{background:#252d3d!important;color:#e2e8f0!important;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 43px,#3a4556 43px,#3a4556 44px)!important;}
+  body.dark #editor-content{background:#252d3d!important;}
+}
 
 </style>
 </head>
 <body>
 
 <div class="loading-overlay" id="loading"><div class="spinner"></div><span>연결 중...</span></div>
+<div class="offline-banner" id="offline-banner">📵 오프라인 상태 — 로컬에 저장된 메모를 표시합니다</div>
 
 <!-- 로그인 -->
 <div id="auth-screen" style="display:none">
@@ -512,8 +544,6 @@ body.dark .btn-share-item{background:#2d3748;border-color:#3a4556;color:#e2e8f0;
           <button class="btn-icon btn-save" onclick="saveMemo()">💾 저장</button>
           <button class="btn-icon btn-lock" id="btn-lock" onclick="toggleLock()">🔓 잠금</button>
           <button class="btn-icon btn-img-insert" onclick="triggerImageUpload()">🖼 이미지</button>
-          <button class="btn-icon btn-dup" onclick="duplicateMemo()" title="복제">⧉</button>
-          <button class="btn-icon btn-archive" id="btn-archive" onclick="archiveMemo()" title="보관">📦</button>
           <button class="btn-icon btn-share" onclick="openShareModal()" title="공유">🔗 공유</button>
           <button class="btn-icon btn-export-pdf" onclick="exportPDF()">📄 PDF</button>
           <button class="btn-icon" onclick="toggleDark()" id="btn-dark" title="다크모드">🌙</button>
@@ -546,6 +576,12 @@ body.dark .btn-share-item{background:#2d3748;border-color:#3a4556;color:#e2e8f0;
       <div class="drawer-section-title">폴더</div>
       <div id="folder-list"></div>
     </div>
+  </div>
+  <!-- 글씨 크기 슬라이더 -->
+  <div class="font-size-bar">
+    <span class="font-size-label">글씨 크기</span>
+    <input class="font-size-slider" type="range" id="font-size-slider" min="12" max="22" value="14" oninput="changeFontSize(this.value)">
+    <span class="font-size-value" id="font-size-value">14</span>
   </div>
   <div class="drawer-footer">
     <button class="btn-add-folder" onclick="openAddFolderModal()">＋ 새 폴더 추가</button>
@@ -589,7 +625,6 @@ body.dark .btn-share-item{background:#2d3748;border-color:#3a4556;color:#e2e8f0;
     <div class="share-btns">
       <button class="btn-share-item" onclick="copyShareUrl()"><span class="share-icon">📋</span><span>링크 복사</span></button>
       <button class="btn-share-item" onclick="shareViaEmail()"><span class="share-icon">📧</span><span>이메일로 보내기</span></button>
-      <button class="btn-share-item" onclick="shareViaKakao()"><span class="share-icon">💬</span><span>카카오톡으로 보내기</span></button>
       <button class="btn-share-item" onclick="shareViaNative()"><span class="share-icon">📤</span><span>기타 공유</span></button>
     </div>
     <div class="modal-btns" style="margin-top:12px;">
@@ -642,6 +677,120 @@ let lockingMemoId=null;
 let unlockedMemos=new Set();
 let selectedMemos=new Set();
 let shareUrl='';
+let isOnline=navigator.onLine;
+
+// ══════════════════════════════════════════
+// ── IndexedDB (로컬 저장소) ──
+// ══════════════════════════════════════════
+const IDB_NAME='MemoAppDB', IDB_VER=1;
+let idb=null;
+
+function openIDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(IDB_NAME,IDB_VER);
+    req.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains('memos'))
+        db.createObjectStore('memos',{keyPath:'id'});
+      if(!db.objectStoreNames.contains('folders'))
+        db.createObjectStore('folders',{keyPath:'id'});
+      if(!db.objectStoreNames.contains('pending'))
+        db.createObjectStore('pending',{keyPath:'id',autoIncrement:true});
+    };
+    req.onsuccess=e=>{idb=e.target.result;resolve(idb);};
+    req.onerror=()=>reject(req.error);
+  });
+}
+
+// IDB에 메모 저장
+function idbSaveMemo(memo){
+  if(!idb)return;
+  const tx=idb.transaction('memos','readwrite');
+  // updatedAt이 Firestore timestamp 객체면 ms로 변환
+  const m={...memo};
+  if(m.updatedAt&&typeof m.updatedAt.toDate==='function') m.updatedAt=m.updatedAt.toDate().getTime();
+  if(m.createdAt&&typeof m.createdAt.toDate==='function') m.createdAt=m.createdAt.toDate().getTime();
+  if(m.trashedAt&&typeof m.trashedAt.toDate==='function') m.trashedAt=m.trashedAt.toDate().getTime();
+  tx.objectStore('memos').put(m);
+}
+
+// IDB에서 전체 메모 읽기
+function idbLoadMemos(){
+  return new Promise((resolve)=>{
+    if(!idb){resolve([]);return;}
+    const tx=idb.transaction('memos','readonly');
+    const req=tx.objectStore('memos').getAll();
+    req.onsuccess=()=>resolve(req.result||[]);
+    req.onerror=()=>resolve([]);
+  });
+}
+
+// IDB에서 메모 삭제
+function idbDeleteMemo(id){
+  if(!idb)return;
+  const tx=idb.transaction('memos','readwrite');
+  tx.objectStore('memos').delete(id);
+}
+
+// IDB에 폴더 저장
+function idbSaveFolder(folder){
+  if(!idb)return;
+  const tx=idb.transaction('folders','readwrite');
+  tx.objectStore('folders').put(folder);
+}
+
+// IDB에서 전체 폴더 읽기
+function idbLoadFolders(){
+  return new Promise((resolve)=>{
+    if(!idb){resolve([]);return;}
+    const tx=idb.transaction('folders','readonly');
+    const req=tx.objectStore('folders').getAll();
+    req.onsuccess=()=>resolve(req.result||[]);
+    req.onerror=()=>resolve([]);
+  });
+}
+
+// 오프라인 대기 작업 저장 (나중에 Firebase 동기화)
+function idbAddPending(action){
+  if(!idb)return;
+  const tx=idb.transaction('pending','readwrite');
+  tx.objectStore('pending').add({...action, queuedAt:Date.now()});
+}
+
+// 대기 작업 모두 처리 (온라인 복귀 시)
+async function flushPending(){
+  if(!idb||!currentUser)return;
+  const tx=idb.transaction('pending','readwrite');
+  const store=tx.objectStore('pending');
+  const all=await new Promise(r=>{const q=store.getAll();q.onsuccess=()=>r(q.result||[]);q.onerror=()=>r([]);});
+  for(const job of all){
+    try{
+      if(job.type==='save'){
+        await setDoc(doc(db,'users',currentUser.uid,'memos',job.memo.id),
+          {title:job.memo.title,content:job.memo.content,textPreview:job.memo.textPreview,
+           folderId:job.memo.folderId,updatedAt:serverTimestamp()},{merge:true});
+      }else if(job.type==='delete'){
+        await deleteDoc(doc(db,'users',currentUser.uid,'memos',job.id));
+      }
+      store.delete(job.id);
+    }catch(e){console.warn('sync fail',e);}
+  }
+}
+
+// ── 온라인/오프라인 감지 ──
+function updateOnlineStatus(){
+  const banner=document.getElementById('offline-banner');
+  if(navigator.onLine){
+    isOnline=true;
+    if(banner){banner.textContent='✅ 온라인 연결됨 — 데이터를 동기화합니다';banner.className='offline-banner online show';setTimeout(()=>banner.classList.remove('show'),3000);}
+    flushPending(); // 밀린 작업 Firebase에 전송
+  }else{
+    isOnline=false;
+    if(banner){banner.textContent='📵 오프라인 상태 — 로컬에 저장된 메모를 표시합니다';banner.className='offline-banner show';}
+  }
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
 
 // 가상 폴더 정의
 const VIRTUAL_FOLDERS=[
@@ -695,6 +844,8 @@ onAuthStateChanged(auth,async user=>{
     document.getElementById('drawer-email').textContent=user.email;
     // 다크모드 복원
     if(localStorage.getItem('darkMode')==='1'){document.body.classList.add('dark');const b=document.getElementById('btn-dark');if(b)b.textContent='☀️';}
+    setTimeout(restoreFontSize, 300);
+    await openIDB();
     await initFolders();
     loadMemos();
   }else{
@@ -708,6 +859,13 @@ onAuthStateChanged(auth,async user=>{
 // ── 폴더 초기화 ──
 async function initFolders(){
   const colRef=collection(db,'users',currentUser.uid,'folders');
+  // 오프라인이면 IDB에서 폴더 로드
+  if(!navigator.onLine){
+    const localFolders=await idbLoadFolders();
+    folders=localFolders.filter(f=>f.uid===currentUser.uid);
+    renderDrawer();updateSidebarViewBar();renderMoveFolderPopup();
+    return;
+  }
   unsubFolders=onSnapshot(query(colRef,orderBy('order','asc')),async snap=>{
     if(snap.empty){
       const batch=writeBatch(db);
@@ -715,6 +873,8 @@ async function initFolders(){
       await batch.commit();return;
     }
     folders=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // IDB에 폴더 동기화
+    folders.forEach(f=>idbSaveFolder({...f,uid:currentUser.uid}));
     renderDrawer();
     updateSidebarViewBar();
     renderMoveFolderPopup();
@@ -858,8 +1018,19 @@ window.moveFolderOrder=async function(fid,dir,e){
 // ── 메모 불러오기 ──
 function loadMemos(){
   if(!currentUser)return;
+  // 오프라인이면 로컬 IDB에서 먼저 로드
+  if(!navigator.onLine){
+    idbLoadMemos().then(localMemos=>{
+      memos=localMemos.filter(m=>m.uid===currentUser.uid);
+      renderDrawer();
+      renderList(document.getElementById('search-input').value);
+    });
+    return;
+  }
   unsubMemos=onSnapshot(query(collection(db,'users',currentUser.uid,'memos'),orderBy('order','asc')),snap=>{
     memos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // Firebase 데이터를 IDB에도 동시 저장
+    memos.forEach(m=>idbSaveMemo({...m,uid:currentUser.uid}));
     renderDrawer();
     renderList(document.getElementById('search-input').value);
     if(currentMemoId){
@@ -883,7 +1054,15 @@ function renderList(filter=''){
   let items=getViewMemos();
   if(filter)items=items.filter(m=>(m.title||'').toLowerCase().includes(filter.toLowerCase())||(m.textPreview||'').toLowerCase().includes(filter.toLowerCase()));
   if(currentViewId!=='trash'){
-    items.sort((a,b)=>{if(a.pinned&&!b.pinned)return -1;if(!a.pinned&&b.pinned)return 1;return(a.order??0)-(b.order??0);});
+    items.sort((a,b)=>{
+      // 고정 메모 최상단
+      if(a.pinned&&!b.pinned)return -1;
+      if(!a.pinned&&b.pinned)return 1;
+      // 최근 수정일 순 (최신이 위)
+      const at=a.updatedAt?.toDate?.()?.getTime?.()??a.updatedAt??0;
+      const bt=b.updatedAt?.toDate?.()?.getTime?.()??b.updatedAt??0;
+      return bt-at;
+    });
   }
   document.getElementById('memo-count').textContent=items.length>0?`총 ${items.length}개`:'';
   if(!items.length){
@@ -901,6 +1080,7 @@ function renderList(filter=''){
     if(m.archived)badges.push('<span class="badge">📦</span>');
     const isSelected=selectedMemos.has(m.id);
     const orderBtns=(!inSelect&&currentViewId!=='trash')?`<div class="item-order-btns">
+      ${idx>0?`<button class="btn-order btn-order-top" onclick="moveToTop('${m.id}',event)" title="맨 위로">⤒</button>`:''}
       ${idx>0?`<button class="btn-order" onclick="moveOrder('${m.id}',-1,event)">▲</button>`:''}
       ${idx<items.length-1?`<button class="btn-order" onclick="moveOrder('${m.id}',1,event)">▼</button>`:''}
     </div>`:'';
@@ -1001,6 +1181,40 @@ window.moveOrder=async function(id,dir,e){
   batch.update(doc(db,'users',currentUser.uid,'memos',b.id),{order:a.order??idx});
   await batch.commit();
 };
+
+// ── 맨 위로 ──
+window.moveToTop=async function(id,e){
+  e.stopPropagation();
+  const items=getViewMemos().filter(m=>!m.pinned);
+  if(items.length===0)return;
+  const minOrder=(Math.min(...items.map(m=>m.order??0)))-1;
+  await setDoc(doc(db,'users',currentUser.uid,'memos',id),{order:minOrder},{merge:true});
+};
+
+// ── 글씨 크기 조절 ──
+window.changeFontSize=function(size){
+  document.getElementById('font-size-value').textContent=size;
+  // 메모 목록 글씨 크기
+  document.querySelectorAll('.item-title').forEach(el=>el.style.fontSize=size+'px');
+  document.querySelectorAll('.item-preview').forEach(el=>el.style.fontSize=(parseInt(size)-2)+'px');
+  // 에디터 본문 글씨 크기
+  const ce=document.getElementById('memo-content');
+  if(ce)ce.style.fontSize=size+'px';
+  // 제목 글씨 크기
+  const ti=document.getElementById('memo-title');
+  if(ti)ti.style.fontSize=(parseInt(size)+6)+'px';
+  // 저장
+  localStorage.setItem('fontSize',size);
+};
+
+// 앱 시작 시 저장된 글씨 크기 복원
+function restoreFontSize(){
+  const saved=localStorage.getItem('fontSize');
+  if(saved){
+    const slider=document.getElementById('font-size-slider');
+    if(slider){slider.value=saved;changeFontSize(saved);}
+  }
+}
 
 // ── 새 메모 ──
 window.newMemo=async function(){
@@ -1114,6 +1328,14 @@ function showEditorFields(m){
     <div class="content-editor" id="memo-content" contenteditable="true" oninput="onEdit()" onpaste="onPaste(event)">${m.content||''}</div>
   `;
   updateWordCount();
+  // 저장된 글씨 크기 적용
+  const saved=localStorage.getItem('fontSize');
+  if(saved){
+    const ce=document.getElementById('memo-content');
+    const ti=document.getElementById('memo-title');
+    if(ce)ce.style.fontSize=saved+'px';
+    if(ti)ti.style.fontSize=(parseInt(saved)+6)+'px';
+  }
   document.getElementById('memo-content').addEventListener('click',e=>{
     document.querySelectorAll('.content-editor img').forEach(i=>i.classList.remove('selected'));
     if(e.target.tagName==='IMG')e.target.classList.add('selected');
@@ -1272,13 +1494,30 @@ window.saveMemo=async function(){
   const m=memos.find(x=>x.id===currentMemoId);
   const fid=m?m.folderId:(folders[0]?.id||'');
   const textPreview=ce.innerText.trim().substring(0,80);
-  try{
-    await setDoc(doc(db,'users',currentUser.uid,'memos',currentMemoId),{title:te.value,content:ce.innerHTML,textPreview,folderId:fid,updatedAt:serverTimestamp()},{merge:true});
-    if(s){s.textContent='✓ 저장됨';setTimeout(()=>{if(s)s.textContent='';},2000);}
-    // 메타바 시간 업데이트
+  const memoData={id:currentMemoId,title:te.value,content:ce.innerHTML,textPreview,folderId:fid,uid:currentUser.uid,updatedAt:Date.now()};
+
+  // 로컬 IDB에 항상 저장
+  idbSaveMemo(memoData);
+
+  if(isOnline){
+    try{
+      await setDoc(doc(db,'users',currentUser.uid,'memos',currentMemoId),
+        {title:te.value,content:ce.innerHTML,textPreview,folderId:fid,updatedAt:serverTimestamp()},{merge:true});
+      if(s){s.textContent='✓ 저장됨';setTimeout(()=>{if(s)s.textContent='';},2000);}
+      const mt=document.querySelector('.meta-left span:last-child');
+      if(mt)mt.textContent='🕐 '+fmtDateFull({toDate:()=>new Date()});
+    }catch(e){
+      // Firebase 실패 시 대기열에 추가
+      idbAddPending({type:'save',memo:memoData});
+      if(s)s.textContent='📵 로컬 저장됨';
+    }
+  }else{
+    // 오프라인: 대기열에 추가
+    idbAddPending({type:'save',memo:memoData});
+    if(s){s.textContent='📵 로컬 저장됨';setTimeout(()=>{if(s)s.textContent='';},2000);}
     const mt=document.querySelector('.meta-left span:last-child');
     if(mt)mt.textContent='🕐 '+fmtDateFull({toDate:()=>new Date()});
-  }catch(e){if(s)s.textContent='저장 실패 ⚠️';}
+  }
 };
 
 // ── 복제 ──
