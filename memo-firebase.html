@@ -112,6 +112,15 @@ body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#e8f4fd
 .btn-select-all{padding:5px 12px;background:#fff3cd;border:1.5px solid #ffc107;border-radius:8px;font-size:12px;cursor:pointer;color:#856404;font-weight:600;}
 .btn-select-trash{padding:5px 12px;background:#e53e3e;border:none;border-radius:8px;font-size:12px;cursor:pointer;color:white;font-weight:600;}
 .btn-select-trash:disabled{background:#ccc;cursor:not-allowed;}
+/* 삭제 확인 바 */
+.delete-confirm-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;background:#fff0f0;border-bottom:2px solid #e53e3e;
+  flex-shrink:0;gap:8px;
+}
+.delete-confirm-text{font-size:13px;font-weight:600;color:#c53030;flex:1;}
+.btn-confirm-yes{padding:7px 16px;background:#e53e3e;border:none;border-radius:8px;font-size:13px;cursor:pointer;color:white;font-weight:700;}
+.btn-confirm-no{padding:7px 16px;background:white;border:1.5px solid #aaa;border-radius:8px;font-size:13px;cursor:pointer;color:#555;}
 /* 목록 선택 모드 */
 .memo-list.select-mode .memo-item{cursor:default;padding-left:42px;position:relative;}
 .memo-list.select-mode .memo-item .item-order-btns{display:none!important;}
@@ -578,10 +587,16 @@ body.dark .font-size-slider{background:#3a4556;}
       </div>
       <!-- 선택 모드 툴바 -->
       <div class="select-toolbar" id="select-toolbar">
-        <span class="select-info" id="select-info">0개 선택</span>
+        <span class="select-info" id="select-info">메모를 선택하세요</span>
         <button class="btn-select-all" onclick="selectAllMemos()">전체선택</button>
-        <button class="btn-select-trash" id="btn-select-trash" onclick="trashSelectedMemos()" disabled>🗑 삭제</button>
+        <button class="btn-select-trash" id="btn-select-trash" onclick="showDeleteConfirmBar()" disabled>🗑 삭제</button>
         <button class="btn-select-cancel" onclick="exitSelectMode()">취소</button>
+      </div>
+      <!-- 삭제 확인 바 -->
+      <div class="delete-confirm-bar" id="delete-confirm-bar" style="display:none">
+        <span class="delete-confirm-text" id="delete-confirm-text">정말 삭제할까요?</span>
+        <button class="btn-confirm-yes" id="btn-confirm-yes">✓ 삭제</button>
+        <button class="btn-confirm-no" onclick="hideDeleteConfirmBar()">✗ 취소</button>
       </div>
       <div class="memo-list" id="memo-list"><div class="empty-list">메모가 없습니다</div></div>
     </div>
@@ -1203,36 +1218,59 @@ window.cancelLongPress=function(){if(longPressTimer){clearTimeout(longPressTimer
 
 // ── 선택 삭제 모달 ──
 let pendingDeleteIds=[];
+
+window.showDeleteConfirmBar=function(){
+  if(selectedMemos.size===0)return;
+  pendingDeleteIds=[...selectedMemos];
+  const isTrash=currentViewId==='trash';
+  const txt=document.getElementById('delete-confirm-text');
+  txt.textContent=isTrash
+    ? `${pendingDeleteIds.length}개를 영구 삭제합니다!`
+    : `${pendingDeleteIds.length}개를 휴지통으로 이동합니다`;
+  // 삭제 버튼에 직접 함수 연결
+  const yesBtn=document.getElementById('btn-confirm-yes');
+  yesBtn.onclick=doDeleteSelected;
+  document.getElementById('delete-confirm-bar').style.display='flex';
+};
+
+window.hideDeleteConfirmBar=function(){
+  document.getElementById('delete-confirm-bar').style.display='none';
+  pendingDeleteIds=[];
+};
+
+async function doDeleteSelected(){
+  const ids=pendingDeleteIds;
+  if(!ids||!ids.length)return;
+  pendingDeleteIds=[];
+  document.getElementById('delete-confirm-bar').style.display='none';
+  const isTrash=currentViewId==='trash';
+  const s=document.getElementById('select-info');
+  if(s)s.textContent='삭제 중...';
+  const batch=writeBatch(db);
+  if(isTrash){
+    ids.forEach(id=>batch.delete(doc(db,'users',currentUser.uid,'memos',id)));
+  }else{
+    ids.forEach(id=>batch.update(doc(db,'users',currentUser.uid,'memos',id),{trashed:true,trashedAt:serverTimestamp()}));
+  }
+  await batch.commit();
+  ids.forEach(id=>idbDeleteMemo(id));
+  if(currentMemoId&&ids.includes(currentMemoId)){
+    currentMemoId=null;
+    document.getElementById('editor-content').innerHTML='<div class="editor-empty"><div class="big-icon">📄</div><p>메모를 선택하거나 새 메모를 작성하세요</p></div>';
+    document.getElementById('app-body').classList.remove('show-editor');
+    document.getElementById('app-screen').classList.remove('editing');
+  }
+  exitSelectMode();
+}
+
 window.closeSelectDeleteModal=function(){
   document.getElementById('select-delete-modal').classList.remove('show');
-  pendingDeleteIds=[];
 };
-window.confirmSelectDelete=async function(){
+window.confirmSelectDelete=function(){
   document.getElementById('select-delete-modal').classList.remove('show');
-  const ids=pendingDeleteIds;
-  pendingDeleteIds=[];
-  if(!ids.length)return;
-  const isTrash=currentViewId==='trash';
-  try{
-    const batch=writeBatch(db);
-    if(isTrash){
-      ids.forEach(id=>batch.delete(doc(db,'users',currentUser.uid,'memos',id)));
-    }else{
-      ids.forEach(id=>batch.update(doc(db,'users',currentUser.uid,'memos',id),{trashed:true,trashedAt:serverTimestamp()}));
-    }
-    await batch.commit();
-    ids.forEach(id=>idbDeleteMemo(id));
-    if(currentMemoId&&ids.includes(currentMemoId)){
-      currentMemoId=null;
-      document.getElementById('editor-content').innerHTML='<div class="editor-empty"><div class="big-icon">📄</div><p>메모를 선택하거나 새 메모를 작성하세요</p></div>';
-      document.getElementById('app-body').classList.remove('show-editor');
-      document.getElementById('app-screen').classList.remove('editing');
-    }
-    exitSelectMode();
-  }catch(err){
-    alert('삭제 오류: '+err.message);
-  }
+  doDeleteSelected();
 };
+window.trashSelectedMemos=window.showDeleteConfirmBar;
 
 // ── 선택 모드 ──
 window.enterSelectMode=function(){
@@ -1247,8 +1285,11 @@ window.enterSelectMode=function(){
 };
 window.exitSelectMode=function(){
   selectedMemos.clear();
+  pendingDeleteIds=[];
   document.getElementById('memo-list').classList.remove('select-mode');
   document.getElementById('select-toolbar').classList.remove('show');
+  const cb=document.getElementById('delete-confirm-bar');
+  if(cb)cb.style.display='none';
   document.getElementById('btn-select-mode').style.display='';
   document.getElementById('btn-new').style.opacity='';
   document.getElementById('btn-new').disabled=false;
