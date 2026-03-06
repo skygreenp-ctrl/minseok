@@ -95,6 +95,12 @@ body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#e8f4fd
 .sidebar-view-bar{display:flex;align-items:center;gap:7px;margin-bottom:9px;padding:7px 10px;background:#f7fafc;border-radius:9px;}
 .sidebar-view-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 .sidebar-view-label{font-size:12px;font-weight:600;color:#2d3748;flex:1;}
+.btn-folder-delete-here{
+  flex-shrink:0;border:none;background:#fed7d7;color:#e53e3e;
+  border-radius:7px;padding:4px 9px;font-size:15px;cursor:pointer;
+  font-weight:700;line-height:1;
+}
+.btn-folder-delete-here:active{background:#e53e3e;color:white;}
 .btn-new{width:100%;padding:9px;background:#4c6ef5;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;}
 .btn-new:hover{background:#364fc7;}
 .search-box{width:100%;padding:7px 11px;border:2px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;margin-top:8px;}
@@ -577,6 +583,7 @@ body.dark .font-size-slider{background:#3a4556;}
         <div class="sidebar-view-bar">
           <div class="sidebar-view-dot" id="sidebar-view-dot"></div>
           <span class="sidebar-view-label" id="sidebar-view-label">전체 메모</span>
+          <button class="btn-folder-delete-here" id="btn-folder-delete-here" onclick="deleteFolderHere()" title="폴더 삭제" style="display:none">🗑</button>
         </div>
         <button class="btn-new" id="btn-new" onclick="newMemo()">＋ 새 메모</button>
         <input class="search-box" type="text" id="search-input" placeholder="🔍 메모 검색..." oninput="searchMemos(this.value)">
@@ -1023,7 +1030,12 @@ function updateSidebarViewBar(){
   if(label)label.textContent=info.name;
   if(header)header.textContent=info.name;
 
-  // 휴지통 뷰일 때 새 메모 버튼 비활성화
+  // 실제 폴더일 때만 폴더 삭제 버튼 표시
+  const VIRTUAL_IDS=['all','star','arch','trash'];
+  const delBtn=document.getElementById('btn-folder-delete-here');
+  if(delBtn) delBtn.style.display=VIRTUAL_IDS.includes(currentViewId)?'none':'block';
+
+  // 휴지통/보관함 뷰일 때 새 메모 버튼 비활성화
   const btnNew=document.getElementById('btn-new');
   if(btnNew){
     const isSpecial=['trash','arch'].includes(currentViewId);
@@ -1108,7 +1120,28 @@ function showToast(msg,duration=2200){
   clearTimeout(t._timer);
   t._timer=setTimeout(()=>{t.style.opacity='0';},duration);
 }
-window.showToast=showToast;
+// ── 메모 목록 화면에서 현재 폴더 삭제 ──
+window.deleteFolderHere=async function(){
+  const VIRTUAL_IDS=['all','star','arch','trash'];
+  if(VIRTUAL_IDS.includes(currentViewId))return;
+  const fid=currentViewId;
+  const f=folders.find(x=>x.id===fid);
+  const fname=f?f.name:'이 폴더';
+  // 삭제 확인 바 재활용
+  const bar=document.getElementById('delete-confirm-bar');
+  const txt=document.getElementById('delete-confirm-text');
+  const yes=document.getElementById('btn-confirm-yes');
+  if(bar&&txt&&yes){
+    txt.textContent=`"${fname}" 폴더를 삭제합니다`;
+    yes.onclick=async function(){
+      bar.style.display='none';
+      await deleteDoc(doc(db,'users',currentUser.uid,'folders',fid));
+      selectView('all');
+      showToast(`"${fname}" 폴더 삭제됨`);
+    };
+    bar.style.display='flex';
+  }
+};
 
 window.deleteFolder=function(fid,e){
   if(e)e.stopPropagation();
