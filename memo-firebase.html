@@ -658,6 +658,12 @@ body.dark .font-size-slider{background:#3a4556;}
     <input class="font-size-slider" type="range" id="font-size-slider" min="12" max="22" value="14" oninput="changeFontSize(this.value)">
     <span class="font-size-value" id="font-size-value">14</span>
   </div>
+  <!-- 폴더 삭제 확인 바 -->
+  <div id="folder-delete-bar" style="display:none;flex-shrink:0;padding:10px 14px;background:#fff0f0;border-top:2px solid #e53e3e;gap:8px;align-items:center;">
+    <span style="flex:1;font-size:13px;font-weight:600;color:#c53030;">폴더를 삭제할까요?</span>
+    <button id="folder-delete-yes" style="padding:7px 14px;background:#e53e3e;border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;">삭제</button>
+    <button onclick="hideFolderDeleteBar()" style="padding:7px 14px;background:white;border:1.5px solid #aaa;border-radius:8px;color:#555;font-size:13px;cursor:pointer;">취소</button>
+  </div>
   <div class="drawer-footer">
     <button class="btn-add-folder" onclick="openAddFolderModal()">＋ 새 폴더 추가</button>
   </div>
@@ -1086,7 +1092,24 @@ window.saveFolderModal=async function(){
   }
   closeFolderModal();
 };
-window.deleteFolder=async function(fid,e){if(e)e.stopPropagation();if(!confirm('폴더를 삭제할까요?\n(메모는 삭제되지 않습니다)'))return;await deleteDoc(doc(db,'users',currentUser.uid,'folders',fid));if(currentViewId===fid)selectView('all');};
+let pendingDeleteFolderId=null;
+window.deleteFolder=function(fid,e){
+  if(e)e.stopPropagation();
+  pendingDeleteFolderId=fid;
+  const bar=document.getElementById('folder-delete-bar');
+  bar.style.display='flex';
+  document.getElementById('folder-delete-yes').onclick=async function(){
+    bar.style.display='none';
+    if(!pendingDeleteFolderId)return;
+    await deleteDoc(doc(db,'users',currentUser.uid,'folders',pendingDeleteFolderId));
+    if(currentViewId===pendingDeleteFolderId)selectView('all');
+    pendingDeleteFolderId=null;
+  };
+};
+window.hideFolderDeleteBar=function(){
+  document.getElementById('folder-delete-bar').style.display='none';
+  pendingDeleteFolderId=null;
+};
 
 // ── 폴더 순서 변경 ──
 window.moveFolderOrder=async function(fid,dir,e){
