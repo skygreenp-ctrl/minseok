@@ -1077,7 +1077,7 @@ window.openEditFolderModal=function(fid,e){if(e)e.stopPropagation();editingFolde
 window.closeFolderModal=function(){document.getElementById('folder-modal').classList.remove('show');};
 window.saveFolderModal=async function(){
   const name=document.getElementById('folder-name-input').value.trim();
-  if(!name)return alert('폴더 이름을 입력해주세요');
+  if(!name)return showToast('폴더 이름을 입력해주세요');
   if(editingFolderId){
     await setDoc(doc(db,'users',currentUser.uid,'folders',editingFolderId),{name,color:selectedColor},{merge:true});
   }else{
@@ -1093,21 +1093,43 @@ window.saveFolderModal=async function(){
   closeFolderModal();
 };
 let pendingDeleteFolderId=null;
+
+// ── 토스트 메시지 ──
+function showToast(msg,duration=2200){
+  let t=document.getElementById('app-toast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='app-toast';
+    t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(30,30,30,0.88);color:white;padding:10px 22px;border-radius:20px;font-size:14px;font-weight:600;z-index:9999;pointer-events:none;transition:opacity 0.3s;white-space:nowrap;';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.style.opacity='1';
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>{t.style.opacity='0';},duration);
+}
+window.showToast=showToast;
+
 window.deleteFolder=function(fid,e){
   if(e)e.stopPropagation();
   pendingDeleteFolderId=fid;
   const bar=document.getElementById('folder-delete-bar');
-  bar.style.display='flex';
-  document.getElementById('folder-delete-yes').onclick=async function(){
-    bar.style.display='none';
-    if(!pendingDeleteFolderId)return;
-    await deleteDoc(doc(db,'users',currentUser.uid,'folders',pendingDeleteFolderId));
-    if(currentViewId===pendingDeleteFolderId)selectView('all');
-    pendingDeleteFolderId=null;
-  };
+  if(bar){
+    bar.style.display='flex';
+    document.getElementById('folder-delete-yes').onclick=async function(){
+      bar.style.display='none';
+      if(!pendingDeleteFolderId)return;
+      const fid2=pendingDeleteFolderId;
+      pendingDeleteFolderId=null;
+      await deleteDoc(doc(db,'users',currentUser.uid,'folders',fid2));
+      if(currentViewId===fid2)selectView('all');
+      showToast('폴더가 삭제됐습니다');
+    };
+  }
 };
 window.hideFolderDeleteBar=function(){
-  document.getElementById('folder-delete-bar').style.display='none';
+  const bar=document.getElementById('folder-delete-bar');
+  if(bar)bar.style.display='none';
   pendingDeleteFolderId=null;
 };
 
@@ -1610,8 +1632,8 @@ window.toggleLock=function(){
 window.closeLockModal=function(){document.getElementById('lock-modal').classList.remove('show');};
 window.confirmLock=async function(){
   const pw=document.getElementById('lock-pw-input').value,pw2=document.getElementById('lock-pw-input2').value;
-  if(pw.length<4)return alert('비밀번호는 4자 이상이어야 합니다');
-  if(pw!==pw2)return alert('비밀번호가 일치하지 않습니다');
+  if(pw.length<4){showToast('비밀번호는 4자 이상');return;}
+  if(pw!==pw2){showToast('비밀번호가 일치하지 않습니다');return;}
   await setDoc(doc(db,'users',currentUser.uid,'memos',lockingMemoId),{lockHash:hashPin(pw)},{merge:true});
   unlockedMemos.add(lockingMemoId);closeLockModal();
   updateLockBtn({lockHash:hashPin(pw)});renderList(document.getElementById('search-input').value);
@@ -1619,7 +1641,7 @@ window.confirmLock=async function(){
 window.confirmUnlock=async function(){
   const pw=document.getElementById('lock-pw-input').value;
   const m=memos.find(x=>x.id===lockingMemoId);if(!m)return;
-  if(hashPin(pw)!==m.lockHash)return alert('비밀번호가 틀렸습니다');
+  if(hashPin(pw)!==m.lockHash){showToast('비밀번호가 틀렸습니다');return;}
   await setDoc(doc(db,'users',currentUser.uid,'memos',lockingMemoId),{lockHash:null},{merge:true});
   unlockedMemos.delete(lockingMemoId);closeLockModal();
   updateLockBtn({lockHash:null});renderList(document.getElementById('search-input').value);
@@ -1666,11 +1688,13 @@ window.trashMemo=async function(){
   if(!currentMemoId||!currentUser)return;
   const m=memos.find(x=>x.id===currentMemoId);if(!m)return;
   if(m.trashed){
-    // 이미 휴지통 → 영구 삭제
-    if(!confirm('이 메모를 영구적으로 삭제할까요?'))return;
+    // 이미 휴지통 → 영구 삭제 (confirm 없이 바로)
     await deleteDoc(doc(db,'users',currentUser.uid,'memos',currentMemoId));
+    idbDeleteMemo(currentMemoId);
+    showToast('🗑 영구 삭제됨');
   }else{
     await setDoc(doc(db,'users',currentUser.uid,'memos',currentMemoId),{trashed:true,trashedAt:serverTimestamp()},{merge:true});
+    showToast('휴지통으로 이동됨');
   }
   clearTimeout(autoSaveTimer);currentMemoId=null;
   document.getElementById('editor-content').innerHTML='<div class="editor-empty"><div class="big-icon">📄</div><p>메모를 선택하거나 새 메모를 작성하세요</p></div>';
@@ -1758,7 +1782,7 @@ window.duplicateMemo=async function(){
 
 // ── 공유 ──
 window.openShareModal=function(){
-  if(!currentMemoId)return alert('먼저 메모를 선택해주세요');
+  if(!currentMemoId)return showToast('먼저 메모를 선택해주세요');
   const m=memos.find(x=>x.id===currentMemoId);if(!m)return;
   const title=document.getElementById('memo-title')?.value||m.title||'제목 없음';
   const content=document.getElementById('memo-content')?.innerText||m.textPreview||'';
@@ -1774,8 +1798,8 @@ window.copyShareUrl=async function(){
   const title=document.getElementById('memo-title')?.value||m.title||'';
   const content=document.getElementById('memo-content')?.innerText||m.textPreview||'';
   const text=`📝 ${title}\n\n${content}`;
-  try{await navigator.clipboard.writeText(text);alert('클립보드에 복사됐습니다 ✅');}
-  catch(e){alert('복사 실패: '+e.message);}
+  try{await navigator.clipboard.writeText(text);showToast('클립보드에 복사됐습니다 ✅');}
+  catch(e){showToast('복사 실패');}
 };
 window.shareViaEmail=function(){
   const m=memos.find(x=>x.id===currentMemoId);if(!m)return;
@@ -1815,7 +1839,7 @@ function insertImageAtCursor(dataUrl){
   else ce.appendChild(imgEl);
   onEdit();
 }
-window.triggerImageUpload=function(){if(!currentMemoId)return alert('먼저 메모를 선택해주세요');document.getElementById('img-file-input').click();};
+window.triggerImageUpload=function(){if(!currentMemoId)return showToast('먼저 메모를 선택해주세요');document.getElementById('img-file-input').click();};
 window.onImageFileSelected=function(e){const file=e.target.files[0];if(file)compressAndInsert(file);e.target.value='';};
 window.onPaste=function(e){const items=e.clipboardData?.items;if(!items)return;for(const item of items){if(item.type.startsWith('image/')){e.preventDefault();const file=item.getAsFile();if(file)compressAndInsert(file);return;}}};
 window.onDragOver=function(e){e.preventDefault();if(!currentMemoId)return;document.getElementById('drop-overlay').classList.add('show');};
@@ -1824,7 +1848,7 @@ window.onDrop=function(e){e.preventDefault();document.getElementById('drop-overl
 
 // ── PDF ──
 window.exportPDF=async function(){
-  if(!currentMemoId)return alert('먼저 메모를 선택해주세요');
+  if(!currentMemoId)return showToast('먼저 메모를 선택해주세요');
   const s=document.getElementById('save-status');if(s)s.textContent='PDF 생성 중...';
   const te=document.getElementById('memo-title'),ce=document.getElementById('memo-content');if(!te||!ce)return;
   const title=te.value||'메모';
@@ -1843,7 +1867,7 @@ window.exportPDF=async function(){
     else{let y=0;while(y<ih){if(y>0)pdf.addPage();pdf.addImage(imgData,'PNG',10,10-y,pw,ih);y+=ph;}}
     pdf.save(`${title}.pdf`);
     if(s){s.textContent='✓ PDF 저장됨';setTimeout(()=>{if(s)s.textContent='';},2000);}
-  }catch(e){alert('PDF 저장 실패: '+e.message);}
+  }catch(e){showToast('PDF 저장 실패: '+e.message);}
   finally{document.body.removeChild(el);}
 };
 
